@@ -125,13 +125,15 @@ void LightSecTask()
 	}
 }
 
-enum MotorState {First,Second,Third,Fourth,Fifth,Sixth,Seventh,Eighth} m_state;
+enum MotorState {m_INIT,First,Second,Third,Fourth,Fifth,Sixth,Seventh,Eighth} m_state;
 unsigned short numPhases = (90/5.625) * 64;
-unsigned char counter = 0;
+unsigned short phaseCounter = 0;
+unsigned short openCounter;
+unsigned short waitCounter; 
 
 
 void Motor_Init(){
-	m_state = First;
+	m_state = m_INIT;
 }
 
 
@@ -139,6 +141,12 @@ void Motor_Tick(){
 	//Actions
 	switch(m_state)
 	{
+		case m_INIT:
+			phaseCounter = 0;
+			openCounter = 0;
+			waitCounter = 0;
+			break;
+		
 		case First:
 			PORTA = 0x01;
 			break;
@@ -177,99 +185,142 @@ void Motor_Tick(){
 	//Transitions
 	switch(m_state)
 	{
+		case m_INIT:
+			m_state = First;
+			break;
+			
 		case First:
 			if (flag == 1)
 			{
-				if (counter != numPhases)
+				if (waitCounter < 500)
 				{
-					counter++;
-					m_state = Second;
+					waitCounter++;
 				}
-				counter = 0;
+				else
+				{
+					if (phaseCounter != numPhases)
+					{
+						phaseCounter++;
+						m_state = Second;
+					}
+					phaseCounter = 0;
+				}
+			}
+			else
+			{
+				m_state = m_INIT;
 			}
 			break;
 			
 		case Second:
 			if (flag == 1)
 			{
-				if (counter != numPhases)
+				if (phaseCounter != numPhases)
 				{
-					counter++;
+					phaseCounter++;
 					m_state = Third;
 				}
-				counter = 0;
+				phaseCounter = 0;
+			}
+			else
+			{
+				m_state = m_INIT;
 			}
 			break;
 			
 		case Third:
 			if (flag == 1)
 			{
-				if (counter != numPhases)
+				if (phaseCounter != numPhases)
 				{
-					counter++;
+					phaseCounter++;
 					m_state = Fourth;
 				}
-				counter = 0;
+				phaseCounter = 0;
+			}
+			else
+			{
+				m_state = m_INIT;
 			}
 			break;
 			
 		case Fourth:
 			if (flag == 1)
 			{
-				if (counter != numPhases)
+				if (phaseCounter != numPhases)
 				{
-					counter++;
+					phaseCounter++;
 					m_state = Fifth;
 				}
-				counter = 0;
+				phaseCounter = 0;
+			}
+			else
+			{
+				m_state = m_INIT;
 			}
 			break;
 			
 		case Fifth:
 			if (flag == 1)
 			{
-				if (counter != numPhases)
+				if (phaseCounter != numPhases)
 				{
-					counter++;
+					phaseCounter++;
 					m_state = Sixth;
 				}
-				counter = 0;
+				phaseCounter = 0;
+			}
+			else
+			{
+				m_state = m_INIT;
 			}
 			break;
 			
 		case Sixth:
 			if (flag == 1)
 			{
-				if (counter != numPhases)
+				if (phaseCounter != numPhases)
 				{
-					counter++;
+					phaseCounter++;
 					m_state = Seventh;
 				}
-				counter = 0;
+				phaseCounter = 0;
+			}
+			else
+			{
+				m_state = m_INIT;
 			}
 			break;
 			
 		case Seventh:
 			if (flag == 1)
 			{
-				if (counter != numPhases)
+				if (phaseCounter != numPhases)
 				{
-					counter++;
+					phaseCounter++;
 					m_state = Eighth;
 				}
-				counter = 0;
+				phaseCounter = 0;
+			}
+			else
+			{
+				m_state = m_INIT;
 			}
 			break;
 			
 		case Eighth:
 			if (flag == 1)
 			{
-				if (counter != numPhases)
+				if (phaseCounter != numPhases)
 				{
-					counter++;
+					phaseCounter++;
 					m_state = First;
 				}
-				counter = 0;
+				phaseCounter = 0;
+			}
+			else
+			{
+				m_state = m_INIT;
 			}
 			break;
 		
