@@ -21,7 +21,10 @@ unsigned char entrance_detected = 0;
 
 // ================== Motor Detection LED ==================
 
-enum LEDState {INIT,detect} led_state;
+unsigned short openTimer = 0;
+unsigned char startNew = 0;
+
+enum LEDState {INIT,detect,carPresent,carLeave} led_state;
 
 void LEDS_Init(){
 	led_state = INIT;
@@ -33,37 +36,65 @@ void LEDS_Tick(){
 	switch(led_state)
 	{
 		case INIT:
-			entrance_detected = 0;
-			break;
+		openTimer = 0;
+		PORTD = 0x00;
+		break;
 		
 		case detect:
-			break;
+		startNew = 0;
+		flag = 0;
+		break;
+		
+		case carPresent:
+		flag = 1;
+		PORTD = 0x00;
+		entrance_detected = 1;
+		break;
+		
+		case carLeave:
+		PORTD = 0xFF;
+		entrance_detected = 0;
+		break;
 		
 		default:
-			break;
+		break;
 	}
 	//Transitions
 	switch(led_state)
 	{
 		case INIT:
-			led_state = detect;
-			break;
+		led_state = detect;
+		break;
 		
 		case detect:
-			if (test)
-			{
-				flag = 1;
-				PORTD = 0x00;
-			}
-			else
-			{
-				flag = 0;
-				PORTD = 0xFF;
-			}
-			break;
+		if (test)
+		{
+			led_state = carPresent;
+		}
+		break;
+		
+		case carPresent:
+		if (!test)
+		{
+			led_state = carLeave;
+		}
+		break;
+		
+		case carLeave:
+		if (openTimer < 50)
+		{
+			openTimer++;
+		}
+		else
+		{
+			openTimer = 0;
+			startNew = 1;
+			led_state = INIT;
+		}
+		break;
 		
 		default:
-			break;
+		break;
 	}
 }
 
@@ -101,56 +132,58 @@ void Motor_Tick(){
 	switch(m_state)
 	{
 		case m_INIT:
-			phaseCounter = 0;
-			phaseCounter2 = 0;
-			openCounter = 0;
-			waitCounter = 0;
-			break;
+		phaseCounter = 0;
+		phaseCounter2 = 0;
+		openCounter = 0;
+		waitCounter = 0;
+		break;
 		
 		case First:
-			PORTA = 0x01;
-			break;
+		PORTA = 0x01;
+		break;
 		
 		case Second:
-			PORTA = 0x03;
-			break;
+		PORTA = 0x03;
+		break;
 		
 		case Third:
-			PORTA = 0x02;
-			break;
+		PORTA = 0x02;
+		break;
 		
 		case Fourth:
-			PORTA = 0x06;
-			break;
+		PORTA = 0x06;
+		break;
 		
 		case Fifth:
-			PORTA = 0x04;
-			break;
+		PORTA = 0x04;
+		break;
 		
 		case Sixth:
-			PORTA = 0x0C;
-			break;
+		PORTA = 0x0C;
+		break;
 		
 		case Seventh:
-			PORTA = 0x08;
-			break;
+		PORTA = 0x08;
+		break;
 		
 		case Eighth:
-			PORTA = 0x09;
-			break;
+		PORTA = 0x09;
+		break;
 		
 		default:
-			break;
+		break;
 	}
 	//Transitions
 	switch(m_state)
 	{
 		case m_INIT:
-			m_state = First;
-			break;
+		m_state = First;
+		break;
 		
 		case First:
-			if (flag == 1 && entrance_detected == 0)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
 				// Waits a couple of seconds until gate starts to open
 				if (waitCounter < 500)
@@ -159,19 +192,14 @@ void Motor_Tick(){
 				}
 				else
 				{
-					entrance_detected = 1;
-					if (phaseCounter <= numPhases)
+					if (phaseCounter != numPhases)
 					{
 						phaseCounter++;
 						m_state = Second;
 					}
-					else
-					{
-						m_state = m_INIT;
-					}
 				}
 			}
-			else if (flag == 0 && entrance_detected == 1)
+			else
 			{
 				if (openCounter < 500)
 				{
@@ -184,216 +212,200 @@ void Motor_Tick(){
 						phaseCounter2++;
 						m_state = Eighth;
 					}
-					else
+					if (startNew == 1)
 					{
-						entrance_detected = 0;
 						m_state = m_INIT;
 					}
 				}
 			}
-			break;
+		}
+		break;
 		
 		case Second:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (phaseCounter <= numPhases)
+				if (phaseCounter != numPhases)
 				{
 					phaseCounter++;
 					m_state = Third;
 				}
-				else
-				{
-					entrance_detected = 0;
-					m_state = m_INIT;
-				}
 			}
-			else if (flag == 0 && entrance_detected == 1)
+			else
 			{
 				if (phaseCounter2 <= numPhases)
 				{
 					phaseCounter2++;
 					m_state = First;
 				}
-				else
+				if (startNew == 1)
 				{
-					entrance_detected = 0;
 					m_state = m_INIT;
 				}
 			}
-			break;
+		}
+		break;
 		
 		case Third:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (phaseCounter <= numPhases)
+				if (phaseCounter != numPhases)
 				{
 					phaseCounter++;
 					m_state = Fourth;
 				}
-				else
-				{
-					m_state = m_INIT;
-				}
 			}
-			else if (flag == 0 && entrance_detected == 1)
+			else
 			{
 				if (phaseCounter2 <= numPhases)
 				{
 					phaseCounter2++;
 					m_state = Second;
 				}
-				else
+				if (startNew == 1)
 				{
-					entrance_detected = 0;
 					m_state = m_INIT;
 				}
 			}
-			break;
+		}
+		break;
 		
 		case Fourth:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (phaseCounter <= numPhases)
+				if (phaseCounter != numPhases)
 				{
 					phaseCounter++;
 					m_state = Fifth;
 				}
-				else
-				{
-					m_state = m_INIT;
-				}
 			}
-			else if (flag == 0 && entrance_detected == 1)
+			else
 			{
 				if (phaseCounter2 <= numPhases)
 				{
 					phaseCounter2++;
 					m_state = Third;
 				}
-				else
+				if (startNew == 1)
 				{
-					entrance_detected = 0;
 					m_state = m_INIT;
 				}
 			}
-			break;
+		}
+		break;
 		
 		case Fifth:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (phaseCounter <= numPhases)
+				if (phaseCounter != numPhases)
 				{
 					phaseCounter++;
 					m_state = Sixth;
 				}
-				else
-				{
-					m_state = m_INIT;
-				}
 			}
-			else if (flag == 0 && entrance_detected == 1)
+			else
 			{
 				if (phaseCounter2 <= numPhases)
 				{
 					phaseCounter2++;
 					m_state = Fourth;
 				}
-				else
+				if (startNew == 1)
 				{
-					entrance_detected = 0;
 					m_state = m_INIT;
 				}
 			}
-			break;
+		}
+		break;
 		
 		case Sixth:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (phaseCounter <= numPhases)
+				if (phaseCounter != numPhases)
 				{
 					phaseCounter++;
 					m_state = Seventh;
 				}
-				else
-				{
-					m_state = m_INIT;
-				}
 			}
-			else if (flag == 0 && entrance_detected == 1)
+			else
 			{
 				if (phaseCounter2 <= numPhases)
 				{
 					phaseCounter2++;
 					m_state = Fifth;
 				}
-				else
+				if (startNew == 1)
 				{
-					entrance_detected = 0;
 					m_state = m_INIT;
 				}
 			}
-			break;
+		}
+		break;
 		
 		case Seventh:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (phaseCounter <= numPhases)
+				if (phaseCounter != numPhases)
 				{
 					phaseCounter++;
 					m_state = Eighth;
 				}
-				else
-				{
-					m_state = m_INIT;
-				}
 			}
-			else if (flag == 0 && entrance_detected == 1)
+			else
 			{
 				if (phaseCounter2 <= numPhases)
 				{
 					phaseCounter2++;
 					m_state = Sixth;
 				}
-				else
+				if (startNew == 1)
 				{
-					entrance_detected = 0;
 					m_state = m_INIT;
 				}
 			}
-			break;
+		}
+		break;
 		
 		case Eighth:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (phaseCounter <= numPhases)
+				if (phaseCounter != numPhases)
 				{
 					phaseCounter++;
 					m_state = First;
 				}
-				else
-				{
-					m_state = m_INIT;
-				}
 			}
-			else if (flag == 0 && entrance_detected == 1)
+			else
 			{
 				if (phaseCounter2 <= numPhases)
 				{
 					phaseCounter2++;
 					m_state = Seventh;
 				}
-				else
+				if (startNew == 1)
 				{
-					entrance_detected = 0;
 					m_state = m_INIT;
 				}
-				
 			}
-			break;
+		}
+		break;
 		
 		
 		default:
-			break;
+		break;
 	}
 }
 
