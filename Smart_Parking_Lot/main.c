@@ -15,9 +15,67 @@
 #include "task.h"
 #include "croutine.h"
 
+
+
+// ======================= LED MATRIX ======================
+
+enum MatrixState {mx_INIT,mx_CROSS} mx_state;
+
+void Matrix_Init()
+{
+	mx_state = mx_INIT;
+}
+
+void Matrix_Tick()
+{
+	switch(mx_state)
+	{
+		case mx_INIT:
+			PORTD = 0x18;
+			PORTC = 0x00;
+		break;
+		
+		case mx_CROSS:
+			PORTD = 0xE7;
+			PORTC = 0xE7;
+		break;
+		
+		default:
+		break;
+	}
+	switch(mx_state)
+	{
+		case mx_INIT:
+			mx_state = mx_CROSS;
+		break;
+		
+		case mx_CROSS:
+			mx_state = mx_INIT;
+		break;
+		
+		default:
+		break;
+	}
+}
+
+void MatrixSecTask()
+{
+	Matrix_Init();
+	for(;;)
+	{
+		Matrix_Tick();
+		vTaskDelay(1);
+	}
+}
+
+
+// =========================================================
+
+
+
 // ===================== IR Sensor LED =====================
 
-enum SensorState {Sensor_INIT} ir_state;
+enum SensorState {Sensor_INIT, output_test, turnoff_test} ir_state;
 	
 void Sensor_Init()
 {
@@ -26,7 +84,59 @@ void Sensor_Init()
 
 void Sensor_Tick()
 {
-	
+	//Actions
+	unsigned char park1 = ~(PINB) & 0x02;
+	unsigned char park2 = ~(PINB) & 0x04;
+	unsigned char park3 = ~(PINB) & 0x08;
+	unsigned char park4 = ~(PINB) & 0x0F;
+	switch(ir_state)
+	{
+		case Sensor_INIT:
+		break;
+		
+		case output_test:
+		break;
+		
+		case turnoff_test:
+		break;
+		
+		default:
+		break;
+	}
+	//Transitions
+	switch(ir_state)
+	{
+		case Sensor_INIT:
+			if (park1)
+			{
+				ir_state = output_test;
+			}
+		break;
+		
+		case output_test:
+			if (park1)
+			{
+				ir_state = turnoff_test;
+			}
+			else
+			{
+				ir_state = Sensor_INIT;
+			}
+		break;
+		
+		case turnoff_test:
+			if (!park1)
+			{
+				ir_state = Sensor_INIT;
+			}
+			else
+			{
+				ir_state = output_test;
+			}
+		
+		default:
+		break;
+	}
 }
 
 void SensorSecTask()
@@ -35,20 +145,18 @@ void SensorSecTask()
 	for(;;)
 	{
 		Sensor_Tick();
-		vTaskDelay(100);
+		vTaskDelay(1);
 	}
 }
 
 
-
-
 // =========================================================
 
-unsigned char flag = 0;
-unsigned char entrance_detected = 0;
 
 // ================== Motor Detection LED ==================
 
+unsigned char flag = 0;
+unsigned char entrance_detected = 0;
 unsigned short openTimer = 0;
 unsigned char startNew = 0;
 
@@ -452,13 +560,17 @@ void StartSecPulse(unsigned portBASE_TYPE Priority)
 	xTaskCreate(LedSecTask, (signed portCHAR *)"LedSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 	xTaskCreate(MotorSecTask, (signed portCHAR *)"MotorSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 	xTaskCreate(SensorSecTask, (signed portCHAR *)"SensorSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
+	xTaskCreate(MatrixSecTask, (signed portCHAR *)"MatrixSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 }
 
 int main(void)
 {
 	DDRB = 0x00; PORTB=0xFF;
-	DDRD = 0xFF; PORTD = 0x00;
 	DDRA = 0xFF; PORTA = 0x00;
+	
+	// LED MATRIX
+	DDRD = 0xFF; PORTD = 0x00;
+	DDRC = 0xFF; PORTC = 0x00;
 	
 	//Start Tasks
 	StartSecPulse(1);
