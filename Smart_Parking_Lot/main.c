@@ -15,6 +15,11 @@
 #include "task.h"
 #include "croutine.h"
 
+unsigned char parking1 = 0;
+unsigned char parking2 = 0;
+unsigned char parking3 = 0;
+unsigned char parking4 = 0;
+int parkingFull = 0;
 
 
 // ======================= LED MATRIX ======================
@@ -31,13 +36,13 @@ void Matrix_Tick()
 	switch(mx_state)
 	{
 		case mx_INIT:
-			PORTD = 0x18;
+			PORTD = 0x00;
 			PORTC = 0x00;
 		break;
 		
 		case mx_CROSS:
-			PORTD = 0xE7;
-			PORTC = 0xE7;
+			PORTD = 0xE0;
+			PORTC = 0xF8;
 		break;
 		
 		default:
@@ -46,11 +51,17 @@ void Matrix_Tick()
 	switch(mx_state)
 	{
 		case mx_INIT:
-			mx_state = mx_CROSS;
+			if (parking1 == 1)
+			{
+				mx_state = mx_CROSS;
+			}
 		break;
 		
 		case mx_CROSS:
-			mx_state = mx_INIT;
+			if (parking1 == 0)
+			{
+				mx_state = mx_INIT;
+			}
 		break;
 		
 		default:
@@ -71,11 +82,192 @@ void MatrixSecTask()
 
 // =========================================================
 
+// ======================= LED MATRIX ======================
+
+enum MatrixState2 {mx2_INIT,mx2_CROSS} mx2_state;
+
+void Matrix2_Init()
+{
+	mx2_state = mx2_INIT;
+}
+
+void Matrix2_Tick()
+{
+	switch(mx2_state)
+	{
+		case mx2_INIT:
+		PORTD = 0x00;
+		PORTC = 0x00;
+		break;
+		
+		case mx2_CROSS:
+		PORTD = 0xE0;
+		PORTC = 0x1F;
+		break;
+		
+		default:
+		break;
+	}
+	switch(mx2_state)
+	{
+		case mx2_INIT:
+		if (parking2 == 1)
+		{
+			mx2_state = mx2_CROSS;
+		}
+		break;
+		
+		case mx2_CROSS:
+		if (parking2 == 0)
+		{
+			mx2_state = mx2_INIT;
+		}
+		break;
+		
+		default:
+		break;
+	}
+}
+
+void Matrix2SecTask()
+{
+	Matrix2_Init();
+	for(;;)
+	{
+		Matrix2_Tick();
+		vTaskDelay(1);
+	}
+}
+
+
+// =========================================================
+
+// ======================= LED MATRIX ======================
+
+enum MatrixState3 {mx3_INIT,mx3_CROSS} mx3_state;
+
+void Matrix3_Init()
+{
+	mx3_state = mx3_INIT;
+}
+
+void Matrix3_Tick()
+{
+	switch(mx3_state)
+	{
+		case mx3_INIT:
+			PORTD = 0x00;
+			PORTC = 0x00;
+		break;
+		
+		case mx3_CROSS:
+			PORTD = 0x07;
+			PORTC = 0xF8;
+		break;
+		
+		default:
+		break;
+	}
+	switch(mx3_state)
+	{
+		case mx3_INIT:
+			if (parking3 == 1)
+			{
+				mx3_state = mx3_CROSS;
+			}
+		break;
+		
+		case mx3_CROSS:
+			if (parking3 == 0)
+			{
+				mx3_state = mx3_INIT;
+			}
+		break;
+		
+		default:
+		break;
+	}
+}
+
+void Matrix3SecTask()
+{
+	Matrix3_Init();
+	for(;;)
+	{
+		Matrix3_Tick();
+		vTaskDelay(1);
+	}
+}
+
+
+// =========================================================
+
+
+// ======================= LED MATRIX ======================
+
+enum MatrixState4 {mx4_INIT,mx4_CROSS} mx4_state;
+
+void Matrix4_Init()
+{
+	mx4_state = mx4_INIT;
+}
+
+void Matrix4_Tick()
+{
+	switch(mx4_state)
+	{
+		case mx4_INIT:
+			PORTD = 0x00;
+			PORTC = 0x00;
+		break;
+		
+		case mx4_CROSS:
+			PORTD = 0x07;
+			PORTC = 0x1F;
+		break;
+		
+		default:
+		break;
+	}
+	switch(mx4_state)
+	{
+		case mx4_INIT:
+			if (parking4 == 1)
+			{
+				mx4_state = mx4_CROSS;
+			}
+		break;
+		
+		case mx4_CROSS:
+			if (parking4 == 0)
+			{
+				mx4_state = mx4_INIT;
+			}
+		break;
+		
+		default:
+		break;
+	}
+}
+
+void Matrix4SecTask()
+{
+	Matrix4_Init();
+	for(;;)
+	{
+		Matrix4_Tick();
+		vTaskDelay(1);
+	}
+}
+
+
+// =========================================================
+
 
 
 // ===================== IR Sensor LED =====================
 
-enum SensorState {Sensor_INIT, output_test, turnoff_test} ir_state;
+enum SensorState {Sensor_INIT,Sensor_Full} ir_state;
 	
 void Sensor_Init()
 {
@@ -88,16 +280,45 @@ void Sensor_Tick()
 	unsigned char park1 = ~(PINB) & 0x02;
 	unsigned char park2 = ~(PINB) & 0x04;
 	unsigned char park3 = ~(PINB) & 0x08;
-	unsigned char park4 = ~(PINB) & 0x0F;
+	unsigned char park4 = ~(PINB) & 0x10;
 	switch(ir_state)
 	{
 		case Sensor_INIT:
+			if (park1)
+			{
+				parking1 = 1;
+			}
+			else if (!park1)
+			{
+				parking1 = 0;
+			}
+			if (park2)
+			{
+				parking2 = 1;
+			}
+			else if (!park2)
+			{
+				parking2 = 0;
+			}
+			if (park3)
+			{
+				parking3 = 1;
+			}
+			else if (!park3)
+			{
+				parking3 = 0;
+			}
+			if (park4)
+			{
+				parking4 = 1;
+			}
+			else if (!park4)
+			{
+				parking4 = 0;
+			}
 		break;
 		
-		case output_test:
-		break;
-		
-		case turnoff_test:
+		case Sensor_Full:
 		break;
 		
 		default:
@@ -107,32 +328,19 @@ void Sensor_Tick()
 	switch(ir_state)
 	{
 		case Sensor_INIT:
-			if (park1)
+			if (park1 && park2 && park3 && park4)
 			{
-				ir_state = output_test;
+				ir_state = Sensor_Full;
 			}
 		break;
 		
-		case output_test:
-			if (park1)
-			{
-				ir_state = turnoff_test;
-			}
-			else
+		case Sensor_Full:
+			if (!(park1 && park2 && park3 && park4))
 			{
 				ir_state = Sensor_INIT;
 			}
 		break;
 		
-		case turnoff_test:
-			if (!park1)
-			{
-				ir_state = Sensor_INIT;
-			}
-			else
-			{
-				ir_state = output_test;
-			}
 		
 		default:
 		break;
@@ -145,7 +353,7 @@ void SensorSecTask()
 	for(;;)
 	{
 		Sensor_Tick();
-		vTaskDelay(1);
+		vTaskDelay(100);
 	}
 }
 
@@ -310,8 +518,16 @@ void Motor_Tick(){
 	switch(m_state)
 	{
 		case m_INIT:
-			m_state = First;
+			if (parking1 == 1)
+			{
+				m_state = m_INIT;
+			}
+			else
+			{
+				m_state = First;
+			}
 		break;
+		
 		
 		case First:
 			if (flag == 1)
@@ -558,9 +774,12 @@ void MotorSecTask()
 void StartSecPulse(unsigned portBASE_TYPE Priority)
 {
 	xTaskCreate(LedSecTask, (signed portCHAR *)"LedSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
-	xTaskCreate(MotorSecTask, (signed portCHAR *)"MotorSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 	xTaskCreate(SensorSecTask, (signed portCHAR *)"SensorSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
+	xTaskCreate(MotorSecTask, (signed portCHAR *)"MotorSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 	xTaskCreate(MatrixSecTask, (signed portCHAR *)"MatrixSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
+	xTaskCreate(Matrix2SecTask, (signed portCHAR *)"Matrix2SecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
+	xTaskCreate(Matrix3SecTask, (signed portCHAR *)"Matrix3SecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
+	xTaskCreate(Matrix4SecTask, (signed portCHAR *)"Matrix4SecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 }
 
 int main(void)
