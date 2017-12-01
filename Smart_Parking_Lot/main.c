@@ -14,6 +14,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "croutine.h"
+#include "usart_ATmega1284.h"
 
 unsigned char parking1 = 0;
 unsigned char parking2 = 0;
@@ -36,13 +37,15 @@ void Matrix_Tick()
 	switch(mx_state)
 	{
 		case mx_INIT:
-			PORTD = 0x00;
-			PORTC = 0x00;
+		PORTC = 0xFF;
+		PORTB = 0xE0;
+		PORTA = 0xF8;
 		break;
 		
 		case mx_CROSS:
-			PORTD = 0xE0;
-			PORTC = 0xF8;
+		PORTB = 0xE0;
+		PORTC = 0xF8;
+		PORTA = 0xFF;
 		break;
 		
 		default:
@@ -51,17 +54,17 @@ void Matrix_Tick()
 	switch(mx_state)
 	{
 		case mx_INIT:
-			if (parking1 == 1)
-			{
-				mx_state = mx_CROSS;
-			}
+		if (parking1 == 1)
+		{
+			mx_state = mx_CROSS;
+		}
 		break;
 		
 		case mx_CROSS:
-			if (parking1 == 0)
-			{
-				mx_state = mx_INIT;
-			}
+		if (parking1 == 0)
+		{
+			mx_state = mx_INIT;
+		}
 		break;
 		
 		default:
@@ -96,13 +99,15 @@ void Matrix2_Tick()
 	switch(mx2_state)
 	{
 		case mx2_INIT:
-		PORTD = 0x00;
-		PORTC = 0x00;
+		PORTC = 0xFF;
+		PORTB = 0xE0;
+		PORTA = 0x1F;
 		break;
 		
 		case mx2_CROSS:
-		PORTD = 0xE0;
 		PORTC = 0x1F;
+		PORTB = 0xE0;
+		PORTA = 0xFF;
 		break;
 		
 		default:
@@ -156,13 +161,15 @@ void Matrix3_Tick()
 	switch(mx3_state)
 	{
 		case mx3_INIT:
-			PORTD = 0x00;
-			PORTC = 0x00;
+		PORTC = 0xFF;
+		PORTB = 0x07;
+		PORTA = 0xF8;
 		break;
 		
 		case mx3_CROSS:
-			PORTD = 0x07;
-			PORTC = 0xF8;
+		PORTC = 0xF8;
+		PORTB = 0x07;
+		PORTA = 0xFF;
 		break;
 		
 		default:
@@ -171,17 +178,17 @@ void Matrix3_Tick()
 	switch(mx3_state)
 	{
 		case mx3_INIT:
-			if (parking3 == 1)
-			{
-				mx3_state = mx3_CROSS;
-			}
+		if (parking3 == 1)
+		{
+			mx3_state = mx3_CROSS;
+		}
 		break;
 		
 		case mx3_CROSS:
-			if (parking3 == 0)
-			{
-				mx3_state = mx3_INIT;
-			}
+		if (parking3 == 0)
+		{
+			mx3_state = mx3_INIT;
+		}
 		break;
 		
 		default:
@@ -217,13 +224,15 @@ void Matrix4_Tick()
 	switch(mx4_state)
 	{
 		case mx4_INIT:
-			PORTD = 0x00;
-			PORTC = 0x00;
+		PORTC = 0xFF;
+		PORTB = 0x07;
+		PORTA = 0x1F;
 		break;
 		
 		case mx4_CROSS:
-			PORTD = 0x07;
-			PORTC = 0x1F;
+		PORTC = 0x1F;
+		PORTB = 0x07;
+		PORTA = 0xFF;
 		break;
 		
 		default:
@@ -232,17 +241,17 @@ void Matrix4_Tick()
 	switch(mx4_state)
 	{
 		case mx4_INIT:
-			if (parking4 == 1)
-			{
-				mx4_state = mx4_CROSS;
-			}
+		if (parking4 == 1)
+		{
+			mx4_state = mx4_CROSS;
+		}
 		break;
 		
 		case mx4_CROSS:
-			if (parking4 == 0)
-			{
-				mx4_state = mx4_INIT;
-			}
+		if (parking4 == 0)
+		{
+			mx4_state = mx4_INIT;
+		}
 		break;
 		
 		default:
@@ -268,7 +277,7 @@ void Matrix4SecTask()
 // ===================== IR Sensor LED =====================
 
 enum SensorState {Sensor_INIT,Sensor_Full} ir_state;
-	
+
 void Sensor_Init()
 {
 	ir_state = Sensor_INIT;
@@ -277,48 +286,60 @@ void Sensor_Init()
 void Sensor_Tick()
 {
 	//Actions
-	unsigned char park1 = ~(PINB) & 0x02;
-	unsigned char park2 = ~(PINB) & 0x04;
-	unsigned char park3 = ~(PINB) & 0x08;
-	unsigned char park4 = ~(PINB) & 0x10;
+	unsigned char park1 = ~(PIND) & 0x08;
+	unsigned char park2 = ~(PIND) & 0x10;
+	unsigned char park3 = ~(PIND) & 0x20;
+	unsigned char park4 = ~(PIND) & 0x40;
 	switch(ir_state)
 	{
 		case Sensor_INIT:
-			if (park1)
-			{
-				parking1 = 1;
-			}
-			else if (!park1)
-			{
-				parking1 = 0;
-			}
-			if (park2)
-			{
-				parking2 = 1;
-			}
-			else if (!park2)
-			{
-				parking2 = 0;
-			}
-			if (park3)
-			{
-				parking3 = 1;
-			}
-			else if (!park3)
-			{
-				parking3 = 0;
-			}
-			if (park4)
-			{
-				parking4 = 1;
-			}
-			else if (!park4)
-			{
-				parking4 = 0;
-			}
+		
+		if (USART_IsSendReady(0))
+		{
+			USART_Send(0x0F, 0);
+		}
+		if (park1)
+		{
+			parking1 = 1;
+		}
+		else if (!park1)
+		{
+			parking1 = 0;
+		}
+		if (park2)
+		{
+			parking2 = 1;
+		}
+		else if (!park2)
+		{
+			parking2 = 0;
+		}
+		if (park3)
+		{
+			parking3 = 1;
+		}
+		else if (!park3)
+		{
+			parking3 = 0;
+		}
+		if (park4)
+		{
+			parking4 = 1;
+		}
+		else if (!park4)
+		{
+			parking4 = 0;
+		}
 		break;
 		
 		case Sensor_Full:
+			if (USART_IsSendReady(0))
+			{
+				USART_Send(0xFF, 0);
+			}
+			PORTC =0x00;
+			PORTB = 0xFF;
+			
 		break;
 		
 		default:
@@ -328,17 +349,17 @@ void Sensor_Tick()
 	switch(ir_state)
 	{
 		case Sensor_INIT:
-			if (park1 && park2 && park3 && park4)
-			{
-				ir_state = Sensor_Full;
-			}
+		if (park1 && park2 && park3 && park4)
+		{
+			ir_state = Sensor_Full;
+		}
 		break;
 		
 		case Sensor_Full:
-			if (!(park1 && park2 && park3 && park4))
-			{
-				ir_state = Sensor_INIT;
-			}
+		if (!(park1 && park2 && park3 && park4))
+		{
+			ir_state = Sensor_INIT;
+		}
 		break;
 		
 		
@@ -361,6 +382,8 @@ void SensorSecTask()
 // =========================================================
 
 
+/*
+
 // ================== Motor Detection LED ==================
 
 unsigned char flag = 0;
@@ -376,25 +399,25 @@ void LEDS_Init(){
 
 void LEDS_Tick(){
 	//Actions
-	unsigned char test = ~(PINB) & 0x01;
+	unsigned char test = ~(PIND) & 0x01;
 	switch(led_state)
 	{
 		case INIT:
-			openTimer = 0;
+		openTimer = 0;
 		break;
 		
 		case detect:
-			startNew = 0;
-			flag = 0;
+		startNew = 0;
+		flag = 0;
 		break;
 		
 		case carPresent:
-			flag = 1;
-			entrance_detected = 1;
+		flag = 1;
+		entrance_detected = 1;
 		break;
 		
 		case carLeave:
-			entrance_detected = 0;
+		entrance_detected = 0;
 		break;
 		
 		default:
@@ -404,34 +427,34 @@ void LEDS_Tick(){
 	switch(led_state)
 	{
 		case INIT:
-			led_state = detect;
+		led_state = detect;
 		break;
 		
 		case detect:
-			if (test)
-			{
-				led_state = carPresent;
-			}
+		if (test)
+		{
+			led_state = carPresent;
+		}
 		break;
 		
 		case carPresent:
-			if (!test)
-			{
-				led_state = carLeave;
-			}
+		if (!test)
+		{
+			led_state = carLeave;
+		}
 		break;
 		
 		case carLeave:
-			if (openTimer < 50)
-			{
-				openTimer++;
-			}
-			else
-			{
-				openTimer = 0;
-				startNew = 1;
-				led_state = INIT;
-			}
+		if (openTimer < 50)
+		{
+			openTimer++;
+		}
+		else
+		{
+			openTimer = 0;
+			startNew = 1;
+			led_state = INIT;
+		}
 		break;
 		
 		default:
@@ -473,42 +496,42 @@ void Motor_Tick(){
 	switch(m_state)
 	{
 		case m_INIT:
-			phaseCounter = 0;
-			phaseCounter2 = 0;
-			openCounter = 0;
-			waitCounter = 0;
+		phaseCounter = 0;
+		phaseCounter2 = 0;
+		openCounter = 0;
+		waitCounter = 0;
 		break;
 		
 		case First:
-			PORTA = 0x01;
+		PORTA = 0x01;
 		break;
 		
 		case Second:
-			PORTA = 0x03;
+		PORTA = 0x03;
 		break;
 		
 		case Third:
-			PORTA = 0x02;
+		PORTA = 0x02;
 		break;
 		
 		case Fourth:
-			PORTA = 0x06;
+		PORTA = 0x06;
 		break;
 		
 		case Fifth:
-			PORTA = 0x04;
+		PORTA = 0x04;
 		break;
 		
 		case Sixth:
-			PORTA = 0x0C;
+		PORTA = 0x0C;
 		break;
 		
 		case Seventh:
-			PORTA = 0x08;
+		PORTA = 0x08;
 		break;
 		
 		case Eighth:
-			PORTA = 0x09;
+		PORTA = 0x09;
 		break;
 		
 		default:
@@ -518,238 +541,238 @@ void Motor_Tick(){
 	switch(m_state)
 	{
 		case m_INIT:
-			if (parking1 == 1)
-			{
-				m_state = m_INIT;
-			}
-			else
-			{
-				m_state = First;
-			}
+		if (parking1 == 1)
+		{
+			m_state = m_INIT;
+		}
+		else
+		{
+			m_state = First;
+		}
 		break;
 		
 		
 		case First:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (entrance_detected == 1)
+				// Waits a couple of seconds until gate starts to open
+				if (waitCounter < 500)
 				{
-					// Waits a couple of seconds until gate starts to open
-					if (waitCounter < 500)
-					{
-						waitCounter++;
-					}
-					else
-					{
-						if (phaseCounter != numPhases)
-						{
-							phaseCounter++;
-							m_state = Second;
-						}
-					}
+					waitCounter++;
 				}
 				else
 				{
-					if (openCounter < 500)
+					if (phaseCounter != numPhases)
 					{
-						openCounter++;
-					}
-					else
-					{
-						if (phaseCounter2 <= numPhases)
-						{
-							phaseCounter2++;
-							m_state = Eighth;
-						}
-						if (startNew == 1)
-						{
-							m_state = m_INIT;
-						}
+						phaseCounter++;
+						m_state = Second;
 					}
 				}
 			}
+			else
+			{
+				if (openCounter < 500)
+				{
+					openCounter++;
+				}
+				else
+				{
+					if (phaseCounter2 <= numPhases)
+					{
+						phaseCounter2++;
+						m_state = Eighth;
+					}
+					if (startNew == 1)
+					{
+						m_state = m_INIT;
+					}
+				}
+			}
+		}
 		break;
 		
 		case Second:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (entrance_detected == 1)
+				if (phaseCounter != numPhases)
 				{
-					if (phaseCounter != numPhases)
-					{
-						phaseCounter++;
-						m_state = Third;
-					}
-				}
-				else
-				{
-					if (phaseCounter2 <= numPhases)
-					{
-						phaseCounter2++;
-						m_state = First;
-					}
-					if (startNew == 1)
-					{
-						m_state = m_INIT;
-					}
+					phaseCounter++;
+					m_state = Third;
 				}
 			}
+			else
+			{
+				if (phaseCounter2 <= numPhases)
+				{
+					phaseCounter2++;
+					m_state = First;
+				}
+				if (startNew == 1)
+				{
+					m_state = m_INIT;
+				}
+			}
+		}
 		break;
 		
 		case Third:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (entrance_detected == 1)
+				if (phaseCounter != numPhases)
 				{
-					if (phaseCounter != numPhases)
-					{
-						phaseCounter++;
-						m_state = Fourth;
-					}
-				}
-				else
-				{
-					if (phaseCounter2 <= numPhases)
-					{
-						phaseCounter2++;
-						m_state = Second;
-					}
-					if (startNew == 1)
-					{
-						m_state = m_INIT;
-					}
+					phaseCounter++;
+					m_state = Fourth;
 				}
 			}
+			else
+			{
+				if (phaseCounter2 <= numPhases)
+				{
+					phaseCounter2++;
+					m_state = Second;
+				}
+				if (startNew == 1)
+				{
+					m_state = m_INIT;
+				}
+			}
+		}
 		break;
 		
 		case Fourth:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (entrance_detected == 1)
+				if (phaseCounter != numPhases)
 				{
-					if (phaseCounter != numPhases)
-					{
-						phaseCounter++;
-						m_state = Fifth;
-					}
-				}
-				else
-				{
-					if (phaseCounter2 <= numPhases)
-					{
-						phaseCounter2++;
-						m_state = Third;
-					}
-					if (startNew == 1)
-					{
-						m_state = m_INIT;
-					}
+					phaseCounter++;
+					m_state = Fifth;
 				}
 			}
+			else
+			{
+				if (phaseCounter2 <= numPhases)
+				{
+					phaseCounter2++;
+					m_state = Third;
+				}
+				if (startNew == 1)
+				{
+					m_state = m_INIT;
+				}
+			}
+		}
 		break;
 		
 		case Fifth:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (entrance_detected == 1)
+				if (phaseCounter != numPhases)
 				{
-					if (phaseCounter != numPhases)
-					{
-						phaseCounter++;
-						m_state = Sixth;
-					}
-				}
-				else
-				{
-					if (phaseCounter2 <= numPhases)
-					{
-						phaseCounter2++;
-						m_state = Fourth;
-					}
-					if (startNew == 1)
-					{
-						m_state = m_INIT;
-					}
+					phaseCounter++;
+					m_state = Sixth;
 				}
 			}
+			else
+			{
+				if (phaseCounter2 <= numPhases)
+				{
+					phaseCounter2++;
+					m_state = Fourth;
+				}
+				if (startNew == 1)
+				{
+					m_state = m_INIT;
+				}
+			}
+		}
 		break;
 		
 		case Sixth:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (entrance_detected == 1)
+				if (phaseCounter != numPhases)
 				{
-					if (phaseCounter != numPhases)
-					{
-						phaseCounter++;
-						m_state = Seventh;
-					}
-				}
-				else
-				{
-					if (phaseCounter2 <= numPhases)
-					{
-						phaseCounter2++;
-						m_state = Fifth;
-					}
-					if (startNew == 1)
-					{
-						m_state = m_INIT;
-					}
+					phaseCounter++;
+					m_state = Seventh;
 				}
 			}
+			else
+			{
+				if (phaseCounter2 <= numPhases)
+				{
+					phaseCounter2++;
+					m_state = Fifth;
+				}
+				if (startNew == 1)
+				{
+					m_state = m_INIT;
+				}
+			}
+		}
 		break;
 		
 		case Seventh:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (entrance_detected == 1)
+				if (phaseCounter != numPhases)
 				{
-					if (phaseCounter != numPhases)
-					{
-						phaseCounter++;
-						m_state = Eighth;
-					}
-				}
-				else
-				{
-					if (phaseCounter2 <= numPhases)
-					{
-						phaseCounter2++;
-						m_state = Sixth;
-					}
-					if (startNew == 1)
-					{
-						m_state = m_INIT;
-					}
+					phaseCounter++;
+					m_state = Eighth;
 				}
 			}
+			else
+			{
+				if (phaseCounter2 <= numPhases)
+				{
+					phaseCounter2++;
+					m_state = Sixth;
+				}
+				if (startNew == 1)
+				{
+					m_state = m_INIT;
+				}
+			}
+		}
 		break;
 		
 		case Eighth:
-			if (flag == 1)
+		if (flag == 1)
+		{
+			if (entrance_detected == 1)
 			{
-				if (entrance_detected == 1)
+				if (phaseCounter != numPhases)
 				{
-					if (phaseCounter != numPhases)
-					{
-						phaseCounter++;
-						m_state = First;
-					}
-				}
-				else
-				{
-					if (phaseCounter2 <= numPhases)
-					{
-						phaseCounter2++;
-						m_state = Seventh;
-					}
-					if (startNew == 1)
-					{
-						m_state = m_INIT;
-					}
+					phaseCounter++;
+					m_state = First;
 				}
 			}
+			else
+			{
+				if (phaseCounter2 <= numPhases)
+				{
+					phaseCounter2++;
+					m_state = Seventh;
+				}
+				if (startNew == 1)
+				{
+					m_state = m_INIT;
+				}
+			}
+		}
 		break;
 		
 		
@@ -770,12 +793,13 @@ void MotorSecTask()
 
 // =========================================================
 
+*/
 
 void StartSecPulse(unsigned portBASE_TYPE Priority)
 {
-	xTaskCreate(LedSecTask, (signed portCHAR *)"LedSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
+	//xTaskCreate(LedSecTask, (signed portCHAR *)"LedSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 	xTaskCreate(SensorSecTask, (signed portCHAR *)"SensorSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
-	xTaskCreate(MotorSecTask, (signed portCHAR *)"MotorSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
+	//xTaskCreate(MotorSecTask, (signed portCHAR *)"MotorSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 	xTaskCreate(MatrixSecTask, (signed portCHAR *)"MatrixSecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 	xTaskCreate(Matrix2SecTask, (signed portCHAR *)"Matrix2SecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
 	xTaskCreate(Matrix3SecTask, (signed portCHAR *)"Matrix3SecTask", configMINIMAL_STACK_SIZE, NULL, Priority, NULL );
@@ -784,12 +808,14 @@ void StartSecPulse(unsigned portBASE_TYPE Priority)
 
 int main(void)
 {
-	DDRB = 0x00; PORTB=0xFF;
+	DDRD = 0x00; PORTD=0xFF;
 	DDRA = 0xFF; PORTA = 0x00;
 	
 	// LED MATRIX
-	DDRD = 0xFF; PORTD = 0x00;
+	DDRB = 0xFF; PORTB = 0x00;
 	DDRC = 0xFF; PORTC = 0x00;
+	
+	initUSART(0);
 	
 	//Start Tasks
 	StartSecPulse(1);
